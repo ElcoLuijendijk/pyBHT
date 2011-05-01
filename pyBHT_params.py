@@ -5,7 +5,7 @@ fileName = 'input/BHTinput.csv'
 outputfilename = 'results/BHTout.csv'
 
 # create a figure of the model results for each BHT series:
-makeFigure = False
+makeFigure = True
 
 # False for forward model only, True for calibration of model params:
 calibrate = True

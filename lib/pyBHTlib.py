@@ -234,97 +234,6 @@ def finiteVolumeSolver2D_simple(mesh, initTemp, diffusivity, Cx_, Cy_,
             , T_model[step].min(), T_model[step].max(), T_model[step].mean())
 
     return mesh, variable, T_model, viewer
-
-
-
-def heatFlowSolver_python(Tf, K, c, rho, cellsize, Nsteps, timestepSize,
-                            bound, borehole,
-                            returnTemperatureCurve=False):
-
-    """
-    2D explicit finite difference solver
-    """
-    
-    if returnTemperatureCurve == True:
-        BHTline = np.zeros((Nsteps))
-    
-    screenOutput = 0
-    Q = np.zeros((np.shape(Tf)), dtype=float)
-    for step in range(Nsteps):
-        
-        # calculate horizontal and vertical components of heat flow (Q)
-        QHor = (Tf[1:, :]-Tf[:-1, :]) *\
-                        (2.0 / (1.0 / K[:-1, :] + 1.0 / K[1:, :]))
-        QVer = (Tf[:, 1:]-Tf[:, :-1]) *\
-                        (2.0 / (1.0 / K[:, :-1] + 1.0 / K[:, 1:]))
-        Q[:, :] = 0.0
-        Q[:-1, :] = Q[:-1, :] + QHor
-        Q[1:, :] = Q[1:, :] - QHor
-        Q[:, :-1] = Q[:, :-1] + QVer
-        Q[:, 1:] = Q[:, 1:] - QVer
-        
-        # calculate temperature change
-        Tchange = Q / (rho*c) * timestepSize / (cellsize**2)
-        
-        # no change if boundary condition grid=1
-        # (fixed temperature boundary condition)
-        Tchange = Tchange - (Tchange*bound)
-        Tf = Tf + Tchange   
-        
-        if  abs(Tchange).max() > 500:
-            print 'error, large changes in T per timestep (>500 degr)'
-            print 'model unstable, reduce timestep size'
-            sys.exit()
-        
-        # store borehole temperature
-        if returnTemperatureCurve == True:
-            BHTavg = ((borehole*Tf).sum())/(borehole.sum())
-            BHTline[step] = BHTavg
-    
-    if returnTemperatureCurve == True:
-        return Tf, BHTline
-    else:
-        return Tf
-        
-        
-def heatFlowSolver_python_v2(Tf, K, c, rho, cellsize, Nsteps, timestepSize,
-                            bound, borehole,
-                            returnTemperatureCurve=False):
-
-    """
-    2D explicit finite difference solver
-    """
-    nx, ny = Tf.shape
-    if returnTemperatureCurve == True:
-        BHTline = np.zeros((Nsteps))
-    
-    screenOutput = 0
-    Q = np.zeros((np.shape(Tf)), dtype=float)
-    for step in range(Nsteps):
-        print step
-        for x in xrange(nx-1):
-            for y in xrange(ny-1):
-                Qleft, Qright, Qdown, Qup = 0, 0, 0, 0
-                if x>0:
-                    Qleft = (Tf[x-1,y]-Tf[x,y]) *\
-                                (2.0/(1.0/K[x-1,y]+1.0/K[x,y]))
-                if x<(nx-1):
-                    Qright =(Tf[x+1,y]-Tf[x,y]) *\
-                                (2.0/(1.0/K[x+1,y]+1.0/K[x,y]))
-                if y>0:
-                    Qdown = (Tf[x,y-1]-Tf[x,y]) *\
-                                (2.0/(1.0/K[x,y-1]+1.0/K[x,y]))
-                if y<(ny-1):
-                    Qup = (Tf[x,y+1]-Tf[x,y]) *\
-                                (2.0/(1.0/K[x,y+1]+1.0/K[x,y])) 
-                
-                Q = Qleft + Qright + Qdown + Qup
-          
-                if bound[x,y]!=1:
-                    Tf[x,y] = Tf[x,y] + Q / (rho[x,y]*c[x,y]) \
-                        * timestepSize / (cellsize*cellsize)
-              
-    return Tf
     
 
 def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
@@ -390,13 +299,13 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
                             timeStep_adj, bound, borehole,
                             Nsteps, nx, ny)
         # store data for figure:
-        BHTcurve = np.concatenate((BHTcurve, BHTline))
-        try:
-            startTime = BHTtimes[-1] 
-        except:
-            startTime = 0
-        BHTtimes = (startTime+np.linspace(timeStep_adj,
-                            timeStep_adj*Nsteps, Nsteps))
+        #BHTcurve = np.concatenate((BHTcurve, BHTline))
+        #try:
+        #    startTime = BHTtimes[-1] 
+        #except:
+        #    startTime = 0
+        #BHTtimes = (startTime+np.linspace(timeStep_adj,
+        #                    timeStep_adj*Nsteps, Nsteps))
             
         Tplot[:, :, 0] = T.copy()
     else:
