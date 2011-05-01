@@ -8,7 +8,7 @@ outputfilename = 'results/BHTout.csv'
 makeFigure = False
 
 # False for forward model only, True for calibration of model params:
-calibrate = False
+calibrate = True
 
 # if True: calibrate drilling mud temperature
 # False: calibrate only the formation temperature, 
@@ -25,9 +25,9 @@ stir = 1
 optMethod = 'simplex'
 
 # mesh size:
-nx, ny = 200, 200
+nx, ny = 100, 100
 # model grid cell size (m)
-cellsize = 0.01
+cellsize = 0.02
 # initial model timestep (sec)
 # deprecated, model calculates optimal timestep
 timestep = 5.0 
