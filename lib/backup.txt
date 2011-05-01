@@ -1,0 +1,6 @@
+Cf2py depend(nx) Tf, Tchange, K, c, rho, bound, Qver, Qtotal
+Cf2py depend(ny) Tf, Tchange, K, c, rho, bound, Qhor, Qtotal
+Cf2py depend(qnx) Qhor
+Cf2py depend(qny) Qver
+Cf2py depend(nx) Tf, Kgrid, cGrid, rhoGrid
+Cf2py depend(ny) Tf, Kgrid, cGrid, rhoGrid

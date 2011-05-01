@@ -1,0 +1,59 @@
+pyBHT
+
+pyBHT is a model code which calculates formation temperature from time
+series of three or more bottom hole temperatures recorded at the same
+depth. The model simulates the cooling as a result of drilling and the
+subsequent thermal recovery. The forward solution is calculated using a
+2D explicit finite difference solver of the heat flow equation. 
+Formation and borehole temperature are estimated using the downhill
+simplex algorithm provided by Scipy.
+
+
+Usage
+- Adjust the location of the BHT input file and the model parameters in
+  the model parameter file: pyBHT_params.py
+- Adjust the BHT series input data. An example file is located in:
+  /input/BHT.csv
+- Run the model: python pyBHT.py
+- A .csv file that contains the model results, including the calibrated
+  formation temperatures is stored in the folder /results/
+- A figure of the model results is created automatically and stored
+   in the folder /fig/
+
+
+Prerequisites
+pyBHT requires the following python packages:
+- numpy
+- scipy
+- matplotlib 
+
+
+Reference
+
+If you publish work that uses pyBHT, please cite the following article:
+
+Luijendijk, E., M. Ter Voorde, R.T. Van Balen, H. Verweij, E. Simmelink. (2011)
+Thermal state of the Roer Valley Graben, part of the European Cenozoic Rift System.
+Basin Research, 23(1), 65-82.
+DOI: 10.1111/j.1365-2117.2010.00466.x
+
+A bibtex file of this citation can be found in the pyBHT folder
+
+This paper contains more information on the model and a case study. You can find a copy on: 
+http://dx.doi.org/10.1111/j.1365-2117.2010.00466.x. 
+
+contact me by email if you do not have access to this journal.
+
+
+License:
+
+pyBHT is distributed under the European Union Public Licence V. 1.1
+A copy of this license is distributed along with pyBHT, see
+license_EN.pdf and license_NL.pdf
+
+
+
+Elco Luijendijk <elco.luijendijk at gmail.com>
+April 2011 
+
+
