@@ -20,7 +20,7 @@ Apr 2011
 Elco Luijendijk <elco.luijendijk@gmail.com>
 """ 
 
-import math,  sys,  csv, pdb
+import math,  sys,  csv, pdb, os
 
 import numpy as np
 import pylab as pl
@@ -35,6 +35,14 @@ print 'Calculation of formation temperatures from time series of bottom hole tem
 print 'using a 2-media (borehole and formation) numerical finite-difference model'
 print 'april 2011'
 print 'Elco Luijendijk <elco.luijendijk@gmail.com>'
+
+
+# compile fortran heat flow modules:
+if len(sys.argv)>1 and sys.argv[1] == 'compile':
+    os.chdir('./lib')
+    os.system('f2py -m -c heatflow heatflow.f')
+    os.system('f2py -m -c heatflow_v2 heatflow_v2.f')
+    os.chdir('./..')
 
                                                     
 header, wellindex, inputArray =\
