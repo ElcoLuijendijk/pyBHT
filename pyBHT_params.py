@@ -5,7 +5,7 @@ fileName = 'input/BHTinput.csv'
 outputfilename = 'results/BHTout.csv'
 
 # create a figure of the model results for each BHT series:
-makeFigure = True
+makeFigure = False
 
 # False for forward model only, True for calibration of model params:
 calibrate = True
@@ -25,9 +25,9 @@ stir = 1
 optMethod = 'simplex'
 
 # mesh size:
-nx, ny = 100, 100
+nx, ny = 150, 150
 # model grid cell size (m)
-cellsize = 0.02
+cellsize = 0.01
 # initial model timestep (sec)
 # deprecated, model calculates optimal timestep
 timestep = 5.0 
@@ -37,8 +37,8 @@ timestep = 5.0
 circtime_est = 5.0
 
 # thermal conductivity:
-# clay, sand, sand/clay mix, limestone, organic, evaporite
-conductivity = np.array([ 2.5 , 3.5 ,  3.0 , 3.2 ,  1.0 ,  5.5 ])
+# sand, sand/clay mix, clay, limestone, organic, evaporite
+conductivity = np.array([ 3.5 , 3.0 ,  2.5 , 3.2 ,  1.0 ,  5.5 ])
 # thermal conductivity drilling mud:
 KMud = 0.88
 # water:
@@ -56,8 +56,8 @@ rhoMud = 1100.0
 
 # porosity-depth eq. data
 # phi values:
-# clay, sand, sand/clay mix, limestone, organic, evaporite
-Phi0 = np.asarray([ 0.63 , 0.49 , 0.55 , 0.70 , 0.05 , 0.01 ])
-Phic = np.asarray([ 0.51e-3 , 0.27e-3 , 0.40e-3 , 0.71e-3 , 0 , 0 ])
+# sand, sand/clay mix, clay, limestone, organic, evaporite
+Phi0 = np.asarray([  0.49 , 0.55 , 0.63, 0.70 , 0.05 , 0.01 ])
+Phic = np.asarray([  0.27e-3 , 0.40e-3 , 0.51e-3, 0.71e-3 , 0 , 0 ])
 
 

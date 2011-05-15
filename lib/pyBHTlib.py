@@ -63,6 +63,7 @@ def readCSVArray_id(fileName, delimiter = '\t'):
             well_id.append(row[0])
         rowNo += 1
     fin.close()
+    
     # convert to array
     dataArray = np.asarray(data).astype(float)
     return header, well_id, dataArray
@@ -83,7 +84,8 @@ def saveCSVArray_id(fileName, header, wellIndex, data, delimiter=','):
 
 def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         circtime, radius, KRock, KMud, cRock, cMud, rhoRock, rhoMud, 
-        stir, BHTArray, makeFigure=False, useFipy=False, debug=False):
+        stir, BHTs, recoveryTimes, makeFigure=False,
+        useFipy=False, debug=False):
 
     """
     function to calculate BHTs
@@ -96,7 +98,7 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
     cGrid = np.zeros((nx, ny), dtype=float)
     rhoGrid = np.zeros((nx, ny), dtype=float)
     bound = np.zeros((nx, ny), dtype=float)
-    Nrows, Nbhts = np.shape(BHTArray)
+    Nbhts = np.shape(BHTs)[0]
 
     if makeFigure ==True:
         BHTcurve = np.array([])
@@ -104,8 +106,8 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         Tplot = np.zeros((nx, ny, Nbhts+1))
     
     # set up thermal parameter grids
-    print 'start setting up temperature and thermal parameters of\
-            %sx%s grid' %(nx, ny)
+    print 'setting up temperature and thermal parameters of %sx%s grid'\
+            %(nx, ny)
     for x in range(0, nx):
         for y in range(0, ny):
             # calculate distance from 0, to see whether in borehole or formation
@@ -173,13 +175,12 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
     # remove temperature boundary condition:
     bound[:, :] = 0
     # create array to store simulated BHTs
-    BHTout = np.zeros((Nrows+1, Nbhts), dtype=float)    
-    # copy BHT input array into output Array
-    BHTout[:-1, :] = BHTArray      
+    BHTout = np.zeros((Nbhts), dtype=float)    
+    
     totalTime = 0 ; sqerror = 0
     print '\tsimulate T, recovery'
     for i in xrange(Nbhts):
-        recovery = BHTArray[0, i] * 60.0
+        recovery = recoveryTimes[i] * 60.0 * 60.0
         timeleft = recovery-totalTime
         totalTime = recovery
         # set no of timesteps:
@@ -222,11 +223,11 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
             T = -((borehole-1)*T) + BHTavg * borehole                   
                 
         print '\tBHT %i of %i, simulated T:  %0.2f, obs. BHT: %0.2f'\
-                %(i+1, Nbhts, BHTavg, BHTArray[1, i])
+                %(i+1, Nbhts, BHTavg, BHTs[i])
         
         # store simulated BHT in output array BHTout
-        BHTout[2, i] = BHTavg 
-        sqerror += (BHTavg-BHTArray[1, i])**2
+        BHTout[i] = BHTavg 
+        sqerror += (BHTavg-BHTs[i])**2
     
     # save figure of model results:
     if debug == True:
@@ -274,7 +275,7 @@ def plotBoreholeRadius(radius, cellsize):
 
 def residualFunc(parameters, nx, ny, cellsize, timestep,
     circtime, radius, KRock, KMud, cRock, cMud, rhoRock, rhoMud, stir,
-    BHTArray, returnData):
+    BHTs, recoveryTimes, returnData):
     
     if len(parameters) == 2:
         print 'calibration params: T formation: %0.2f, T mud: %0.2f'\
@@ -287,10 +288,10 @@ def residualFunc(parameters, nx, ny, cellsize, timestep,
     BHTout, RMSE = BHTcalcFunc(parameters, mudTemp, nx, ny,
                                 cellsize, timestep, circtime, radius,
                                 KRock, KMud, cRock, cMud, rhoRock,
-                                rhoMud, stir, BHTArray)
+                                rhoMud, stir, BHTs, recoveryTimes)
 
     #residuals=zeros(shape(BHTout), dtype=float)
-    residuals = BHTout[2, :]-BHTArray[1, :]
+    residuals = BHTout - BHTs
         
     print 'RMSE of observed and simulated T: %0.2f \n ------' %RMSE
     
