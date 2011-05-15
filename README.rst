@@ -21,44 +21,39 @@ Usage
   An example file is located in: /input/BHT.csv
 - If you are running the model code for the first time:
 
-    * Compile the fortran heat flow modules using f2py::
+    - Compile the fortran heat flow modules using f2py::
+        
         cd lib
         f2py -m -c heatflow heatflow.f
         f2py -m -c heatflow_v2 heatflow_v2.f
-    * Or instruct pyBHT to compile the fortran modules by passing a 'compile'
+        
+    - Or instruct pyBHT to compile the fortran modules by passing a 'compile'
       argument to the python script::
+        
         python pyBHT.py compile
 
 - Run the model code:: 
+        
         python pyBHT.py
 
-- A .csv file that contains the model results, including the calibrated
+- A .csv file that contains the model results, including the calibrated 
   formation temperatures is stored in the folder /results/
 
-- A figure of the model results is created automatically and stored
-   in the folder /fig/
+- A figure of the model results is created automatically and stored in the folder /fig/
 
 
 Dependencies
 ============
 pyBHT requires the following packages to be installed on the system:
 
-* 'Python'_ 
 
-* 'Numpy'_         
+* Python: http://www.python.org/
 
-* 'Scipy'_         
+* NumPy: http://www.scipy.org/NumPy
 
-* 'Matplotlib'_   
+* Matplotlib: http://matplotlib.sourceforge.net/
 
-
-.. _`Python`: http://www.python.org/
-
-.. _`NumPy`: http://www.scipy.org/NumPy
-
-.. _`Matplotlib`: http://matplotlib.sourceforge.net/
-
-.. _`SciPy`: http://www.scipy.org/
+* SciPy: http://www.scipy.org/
 
 
 Reference
@@ -73,11 +68,9 @@ DOI: 10.1111/j.1365-2117.2010.00466.x
 
 A bibtex file of this citation can be found in the pyBHT folder
 
-This paper contains more information on the model and a case study.
 You can find a copy at: 
 http://dx.doi.org/10.1111/j.1365-2117.2010.00466.x. 
-
-contact me by email if you do not have access to this journal.
+Contact me by email if you do not have access to this journal.
 
 
 License
