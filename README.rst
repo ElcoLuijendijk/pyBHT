@@ -2,6 +2,8 @@
 pyBHT
 *****
 
+Description
+===========
 pyBHT is a model code that calculates formation temperature from time
 series of three or more bottom hole temperatures recorded at the same
 depth. The model simulates cooling as a result of drilling and the
@@ -18,18 +20,21 @@ Usage
 - Construct a file containing the BHT series input data.
   An example file is located in: /input/BHT.csv
 - If you are running the model code for the first time:
-  * Compile the fortran heat flow modules using f2py::
+
+    * Compile the fortran heat flow modules using f2py::
         cd lib
         f2py -m -c heatflow heatflow.f
         f2py -m -c heatflow_v2 heatflow_v2.f
-  Or
-  * Instruct pyBHT to compile the fortran modules by passing a 'compile'
-    argument to the python script::
+    * Or instruct pyBHT to compile the fortran modules by passing a 'compile'
+      argument to the python script::
         python pyBHT.py compile
+
 - Run the model code:: 
         python pyBHT.py
+
 - A .csv file that contains the model results, including the calibrated
   formation temperatures is stored in the folder /results/
+
 - A figure of the model results is created automatically and stored
    in the folder /fig/
 
@@ -37,13 +42,17 @@ Usage
 Dependencies
 ============
 pyBHT requires the following packages to be installed on the system:
-- 'Python'_
-- 'Numpy'_         
-- 'Scipy'_         
-- 'Matplotlib'_   
+
+* 'Python'_ 
+
+* 'Numpy'_         
+
+* 'Scipy'_         
+
+* 'Matplotlib'_   
 
 
-.. _`Python`: http://www.python.org/.
+.. _`Python`: http://www.python.org/
 
 .. _`NumPy`: http://www.scipy.org/NumPy
 
