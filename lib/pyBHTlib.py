@@ -139,7 +139,6 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
     # simulate temperatures during drilling:
     ########################################
     print '\tsimulate T, drilling mud circulation'
-    print '\t + %0.2f hr' %(Nsteps*timestep_adj/(60.0*60.0))
     if makeFigure == True:
         BHTline = np.zeros(Nsteps)
         T, BHTline = heatflow_v2.heatflow_v2(T, BHTline, 
@@ -167,7 +166,7 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
             pl.subplot(3,2,1)
             cf = pl.contourf(T,V)
             pl.colorbar()
-    print '\t + %0.2f hr' %(Nsteps*timestep_adj/(60.0*60.0))
+    print '\t + %0.2f hr' %(Nsteps*timeStep_adj/(60.0*60.0))
             
     ####################################################
     # simulate temperature recovery after drilling
@@ -222,7 +221,7 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         # before recording temperature
         if stir == 1 and bound.max() == 0:
             T = -((borehole-1)*T) + BHTavg * borehole                   
-        print '\t + %0.2f hr' %(Nsteps*timestep_adj/(60.0*60.0))        
+        print '\t + %0.2f hr' %(Nsteps*timeStep_adj/(60.0*60.0))        
         print '\tBHT %i of %i, simulated T:  %0.2f, obs. BHT: %0.2f'\
                 %(i+1, Nbhts, BHTavg, BHTs[i])
         
