@@ -146,7 +146,8 @@ for wellNo in xrange(Nwells):
                                         circtime, radius, KRock, KMud2,
                                         cRock_bulk, cMud, rhoRock_bulk, 
                                         rhoMud, stir, BHTs,
-                                        recoveryTimes, returnData),
+                                        recoveryTimes, minimumMudTemp,
+                                        returnData),
                                         ftol=0.01)  
                 parameters = results[0]
                 if calibrateMudTemp == True:
@@ -163,7 +164,7 @@ for wellNo in xrange(Nwells):
                                     circtime, radius, KRock, KMud2,
                                     cRock_bulk, cMud, rhoRock_bulk, rhoMud,
                                     stir, BHTs, recoveryTimes,
-                                    returnData),
+                                    minimumMudTemp, returnData),
                                     xtol=0.1, ftol=0.1)
             #parameters = results
             formationTemp = results[0]

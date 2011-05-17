@@ -5,7 +5,7 @@ fileName = 'input/BHTinput.csv'
 outputfilename = 'results/BHTout.csv'
 
 # create a figure of the model results for each BHT series:
-makeFigure = False
+makeFigure = True
 
 # False for forward model only, True for calibration of model params:
 calibrate = True
@@ -14,6 +14,11 @@ calibrate = True
 # False: calibrate only the formation temperature, 
 #  use fixed mud temperature from input file 
 calibrateMudTemp = True
+
+# minimum value of mud temperature
+# use this to constain the search algorithm 
+# and prevent unrealistic values
+minimumMudTemp = 10.0
 
 # parameter that determines temperature averaging in the borehole
 # 0: no averaging
@@ -25,9 +30,9 @@ stir = 1
 optMethod = 'simplex'
 
 # mesh size:
-nx, ny = 150, 150
+nx, ny = 100, 100
 # model grid cell size (m)
-cellsize = 0.01
+cellsize = 0.02
 # initial model timestep (sec)
 # deprecated, model calculates optimal timestep
 timestep = 5.0 
