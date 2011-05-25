@@ -146,7 +146,8 @@ for wellNo in xrange(Nwells):
                                         circtime, radius, KRock, KMud2,
                                         cRock_bulk, cMud, rhoRock_bulk, 
                                         rhoMud, stir, BHTs,
-                                        recoveryTimes, minimumMudTemp,
+                                        recoveryTimes,
+                                        mudTemp, minimumMudTemp,
                                         returnData),
                                         ftol=0.01)  
                 parameters = results[0]
@@ -162,9 +163,10 @@ for wellNo in xrange(Nwells):
             results = optimize.fmin(pyBHTlib.residualFunc, parameters, 
                                     args=(nx, ny, cellsize, timestep,
                                     circtime, radius, KRock, KMud2,
-                                    cRock_bulk, cMud, rhoRock_bulk, rhoMud,
-                                    stir, BHTs, recoveryTimes,
-                                    minimumMudTemp, returnData),
+                                    cRock_bulk, cMud, rhoRock_bulk,
+                                    rhoMud, stir, BHTs, recoveryTimes,
+                                    mudTemp, minimumMudTemp,
+                                    returnData),
                                     xtol=0.1, ftol=0.1)
             #parameters = results
             formationTemp = results[0]
@@ -239,7 +241,7 @@ for wellNo in xrange(Nwells):
             titletxt = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)',
                         '(G)'][bhtNo]
             titletxt += ' %0.1f hrs recovery time'\
-                %(recoveryTimes[bhtNo]/60.0)
+                %(recoveryTimes[bhtNo])
             pl.title(titletxt)
             pl.xlabel('Distance (m)') ; pl.ylabel('Distance (m)')
 

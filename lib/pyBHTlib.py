@@ -106,7 +106,7 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         Tplot = np.zeros((nx, ny, Nbhts+1))
     
     # set up thermal parameter grids
-    print 'setting up temperature and thermal parameters of %sx%s grid'\
+    print '\tsetting up initial T and parameters of %sx%s grid'\
             %(nx, ny)
     for x in range(0, nx):
         for y in range(0, ny):
@@ -166,7 +166,10 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
             pl.subplot(3,2,1)
             cf = pl.contourf(T,V)
             pl.colorbar()
-    print '\t + %0.2f hr' %(Nsteps*timeStep_adj/(60.0*60.0))
+    #calculate avg., max T in borehole section
+    BHTavg = ((borehole*T).sum())/(borehole.sum())
+        
+    print '\t + %0.2f hr, T= %0.2f' %(Nsteps*timeStep_adj/(60.0*60.0), BHTavg)
             
     ####################################################
     # simulate temperature recovery after drilling
@@ -221,9 +224,9 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         # before recording temperature
         if stir == 1 and bound.max() == 0:
             T = -((borehole-1)*T) + BHTavg * borehole                   
-        print '\t + %0.2f hr' %(Nsteps*timeStep_adj/(60.0*60.0))        
-        print '\tBHT %i of %i, simulated T:  %0.2f, obs. BHT: %0.2f'\
-                %(i+1, Nbhts, BHTavg, BHTs[i])
+        #print '\t + %0.2f hr' %(Nsteps*timeStep_adj/(60.0*60.0))        
+        print '\t+%0.2f hr,BHT %i/%i, sim. T:%0.2f, obs. BHT:%0.2f'\
+        %(Nsteps*timeStep_adj/(60.0*60.0),i+1, Nbhts, BHTavg, BHTs[i])
         
         # store simulated BHT in output array BHTout
         BHTout[i] = BHTavg 
@@ -275,19 +278,25 @@ def plotBoreholeRadius(radius, cellsize):
 
 def residualFunc(parameters, nx, ny, cellsize, timestep,
     circtime, radius, KRock, KMud, cRock, cMud, rhoRock, rhoMud, stir,
-    BHTs, recoveryTimes, minimumMudTemp, returnData):
+    BHTs, recoveryTimes, mudTemp, minimumMudTemp, returnData):
+    
     
     if len(parameters) == 2:
         print 'calibration params: T formation: %0.2f, T mud: %0.2f'\
             %(parameters[0], parameters[1])
+        mudTemp=parameters[1]
+    
+        if mudTemp < minimumMudTemp:
+            mudTemp = minimumMudTemp
+            parameters[1] = mudTemp
+            print '\twarning, increasing mud temp to %0.2f' %mudTemp
+    
+    
     elif len(parameters) == 1:
         print 'calibration params: T formation: %0.2f' %(parameters[0])
     
     initialTemp=parameters[0]
-    mudTemp=parameters[1]
-    if mudTemp < minimumMudTemp:
-        mudTemp = minimumMudTemp
-        print '\twarning, increasing mud temp to minimum value'
+    
     BHTout, RMSE = BHTcalcFunc(parameters, mudTemp, nx, ny,
                                 cellsize, timestep, circtime, radius,
                                 KRock, KMud, cRock, cMud, rhoRock,

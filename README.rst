@@ -9,7 +9,7 @@ series of three or more bottom hole temperatures recorded at the same
 depth. The model simulates cooling as a result of drilling and the
 subsequent thermal recovery using an explicit finite difference 
 solver of the heat flow equation in a 2D model space.
-Formation and borehole temperature are calculated using the downhill 
+Formation and borehole temperature are calibrated using the downhill 
 simplex algorithm provided by Scipy.
 
 
@@ -47,7 +47,7 @@ Dependencies
 PyBHT requires the following packages to be installed on the system:
 
 
-* Python: http://www.python.org/
+* Python 2.x: http://www.python.org/
 
 * NumPy: http://www.scipy.org/NumPy
 
@@ -68,7 +68,7 @@ DOI: 10.1111/j.1365-2117.2010.00466.x
 
 A bibtex file of this citation can be found in the PyBHT folder
 
-You can find a copy at: 
+You can find a copy of the paper at: 
 http://dx.doi.org/10.1111/j.1365-2117.2010.00466.x. 
 Contact me by email if you do not have access to this journal.
 
@@ -76,7 +76,7 @@ Contact me by email if you do not have access to this journal.
 License
 =======
 
-PyBHT is distributed under the European Union Public Licence V. 1.1
+PyBHT is distributed under the European Union Public Licence V. 1.1.
 A copy of this license is distributed along with PyBHT, see
 license_EN.pdf and license_NL.pdf
 
