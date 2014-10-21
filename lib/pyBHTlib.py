@@ -2,16 +2,20 @@
 # calculate formation temperatures from bottom hole temperature data 
 # Copyright 2011, Elco Luijendijk
 
-import math, sys, csv, pdb
+import math
+import csv
 
 import numpy as np
 import pylab as pl
-from scipy import optimize
 
-sys.path.append("./lib/")
-import heatflow, heatflow_v2
+try:
+    import heatflow
+    import heatflow_v2
+except ImportError:
+    raise ImportError('failed to import fortran heatflow modules')
 
 print heatflow_v2.__doc__
+
 
 def initFigure(hor_size=190.0, vert_size=-1, textsize='x-small'):
     
@@ -23,7 +27,7 @@ def initFigure(hor_size=190.0, vert_size=-1, textsize='x-small'):
         vert_size = hor_size*golden_ratio
         
     # initialize figure
-    pl.figure(figsize=(hor_size/25.4, vert_size/25.4))  # set figure size to a4 
+    pl.figure(figsize=(hor_size/25.4, vert_size/25.4))
     
     # set default parameters for figure
     if textsize == 'xx-small':
@@ -38,9 +42,12 @@ def initFigure(hor_size=190.0, vert_size=-1, textsize='x-small'):
         textsize_s = 'small'
         textsize_l = 'medium'
         textsize_leg = 'xx-small'
-    params = {'axes.labelsize': textsize_s, 'text.fontsize': textsize_l\
-    , 'legend.fontsize': textsize_leg, 'axes.titlesize' : textsize_l\
-    , 'xtick.labelsize': textsize_s, 'ytick.labelsize': textsize_s}
+    params = {'axes.labelsize': textsize_s,
+              'text.fontsize': textsize_l,
+              'legend.fontsize': textsize_leg,
+              'axes.titlesize' : textsize_l,
+              'xtick.labelsize': textsize_s,
+              'ytick.labelsize': textsize_s}
     
     pl.rcParams.update(params)
     
@@ -83,9 +90,9 @@ def saveCSVArray_id(fileName, header, wellIndex, data, delimiter=','):
 
 
 def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
-        circtime, radius, KRock, KMud, cRock, cMud, rhoRock, rhoMud, 
-        stir, BHTs, recoveryTimes, makeFigure=False,
-        useFipy=False, debug=False):
+                circtime, radius, KRock, KMud, cRock, cMud, rhoRock, rhoMud,
+                stir, BHTs, recoveryTimes, makeFigure=False,
+                useFipy=False, debug=False):
 
     """
     function to calculate BHTs
@@ -100,7 +107,7 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
     bound = np.zeros((nx, ny), dtype=float)
     Nbhts = np.shape(BHTs)[0]
 
-    if makeFigure ==True:
+    if makeFigure is True:
         BHTcurve = np.array([])
         BHTtimes = np.array([])
         Tplot = np.zeros((nx, ny, Nbhts+1))
@@ -110,7 +117,8 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
             %(nx, ny)
     for x in range(0, nx):
         for y in range(0, ny):
-            # calculate distance from 0, to see whether in borehole or formation
+            # calculate distance from 0, to see whether in borehole or
+            # formation
             distance = (math.sqrt((x*cellsize)**2+(y*cellsize)**2))
             if distance > radius:
                 KGrid[x, y] = KRock
@@ -133,18 +141,19 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
     maxTimeStep = cellsize**2 / (2*diffusivity.max())
     timeStep_adj = maxTimeStep / 2.0
     Nsteps = int(circtime/timeStep_adj)
-    print '\ttime steps: %i, time step size = %0.2e sec' %(Nsteps, timeStep_adj)
+    print '\ttime steps: %i, time step size = %0.2e sec' \
+          % (Nsteps, timeStep_adj)
     
     ########################################
     # simulate temperatures during drilling:
     ########################################
     print '\tsimulate T, drilling mud circulation'
-    if makeFigure == True:
+    if makeFigure is True:
         BHTline = np.zeros(Nsteps)
         T, BHTline = heatflow_v2.heatflow_v2(T, BHTline, 
-                            KGrid, cGrid, rhoGrid, cellsize,
-                            timeStep_adj, bound, borehole,
-                            Nsteps, nx, ny)
+                                             KGrid, cGrid, rhoGrid, cellsize,
+                                             timeStep_adj, bound, borehole,
+                                             Nsteps, nx, ny)
         # store data for figure:
         #BHTcurve = np.concatenate((BHTcurve, BHTline))
         #try:
@@ -157,19 +166,20 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         Tplot[:, :, 0] = T.copy()
     else:
         T = heatflow.heatflow(T, KGrid, cGrid, rhoGrid, cellsize, Nsteps,
-                        timeStep_adj,
-                        bound, nx, ny)
+                              timeStep_adj,
+                              bound, nx, ny)
         
-        if debug == True:
+        if debug is True:
             V = np.arange(int(T.min()), T.max()+2.0, 2.0)
             pl.clf()
-            pl.subplot(3,2,1)
-            cf = pl.contourf(T,V)
+            pl.subplot(3, 2, 1)
+            cf = pl.contourf(T, V)
             pl.colorbar()
     #calculate avg., max T in borehole section
-    BHTavg = ((borehole*T).sum())/(borehole.sum())
+    BHTavg = ((borehole*T).sum()) / (borehole.sum())
         
-    print '\t + %0.2f hr, T= %0.2f' %(Nsteps*timeStep_adj/(60.0*60.0), BHTavg)
+    print '\t + %0.2f hr, T= %0.2f' \
+          % (Nsteps*timeStep_adj/(60.0*60.0), BHTavg)
             
     ####################################################
     # simulate temperature recovery after drilling
@@ -178,9 +188,10 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
     # remove temperature boundary condition:
     bound[:, :] = 0
     # create array to store simulated BHTs
-    BHTout = np.zeros((Nbhts), dtype=float)    
-    
-    totalTime = 0 ; sqerror = 0
+    BHTout = np.zeros(Nbhts,
+                      dtype=float)
+    totalTime = 0
+    sqerror = 0
     print '\tsimulate T, recovery'
     for i in xrange(Nbhts):
         recovery = recoveryTimes[i] * 60.0 * 60.0
@@ -190,16 +201,17 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         Nsteps = int(timeleft/timeStep_adj)
         # simulate temperature evolution:
         
-        if makeFigure ==True:
+        if makeFigure is True:
             BHTline = np.zeros(Nsteps)
-            T, BHTline = heatflow_v2.heatflow_v2(T, BHTline, 
-                                KGrid, cGrid, rhoGrid, cellsize,
-                                timeStep_adj, bound, borehole,
-                                Nsteps, nx, ny)
+            T, BHTline = heatflow_v2.heatflow_v2(
+                T, BHTline,
+                KGrid, cGrid, rhoGrid, cellsize,
+                timeStep_adj, bound, borehole,
+                Nsteps, nx, ny)
             # store temperature data for figure:
             try:
                 startTime = BHTtimes[-1] 
-            except:
+            except ValueError:
                 startTime = 0
             BHTcurve = np.concatenate((BHTcurve, BHTline))
             BHTtimes = np.concatenate((BHTtimes,
@@ -209,67 +221,73 @@ def BHTcalcFunc(parameters, mudTemp, nx, ny, cellsize, timestep,
         
         else:
             T = heatflow.heatflow(T, KGrid, cGrid, rhoGrid, cellsize,
-                                Nsteps, timeStep_adj, bound, nx, ny)
+                                  Nsteps, timeStep_adj, bound, nx, ny)
             
-        if debug == True:
+        if debug is True:
             pl.subplot(3, 2, 3+i)
             pl.contourf(T, V)
             pl.colorbar()
         
         #calculate avg., max T in borehole section
-        BHTavg = ((borehole*T).sum())/(borehole.sum())
+        BHTavg = (borehole*T).sum() / borehole.sum()
             
         # simulate convection in borehole:
         # all temperatures in borehole are averaged
         # before recording temperature
         if stir == 1 and bound.max() == 0:
-            T = -((borehole-1)*T) + BHTavg * borehole                   
+            T = -((borehole - 1) * T) + BHTavg * borehole
         #print '\t + %0.2f hr' %(Nsteps*timeStep_adj/(60.0*60.0))        
-        print '\t+%0.2f hr,BHT %i/%i, sim. T:%0.2f, obs. BHT:%0.2f'\
-        %(Nsteps*timeStep_adj/(60.0*60.0),i+1, Nbhts, BHTavg, BHTs[i])
+        print '\t+%0.2f hr,BHT %i/%i, sim. T:%0.2f, obs. BHT:%0.2f' \
+              % (Nsteps*timeStep_adj / (60.0*60.0), i+1, Nbhts,
+                 BHTavg, BHTs[i])
         
         # store simulated BHT in output array BHTout
         BHTout[i] = BHTavg 
         sqerror += (BHTavg-BHTs[i])**2
     
     # save figure of model results:
-    if debug == True:
+    if debug is True:
         pl.savefig('t_field.png')
         
     # calculate RMSE of observed and simulated BHTs:
     RMSE = math.sqrt(sqerror/Nbhts)
     
-    if makeFigure == True:
+    if makeFigure is True:
         return BHTout, RMSE, BHTtimes, BHTcurve, Tplot
     else:
         return BHTout, RMSE
 
 
 def testpoint(radius, cellsize, xt, yt):
-    xt_=xt-(0.5*cellsize)
-    yt_=yt-(0.5*cellsize)
-    distance=math.sqrt(xt_**2+yt_**2)
-    if distance<=radius:
-        argument=True
+
+    xt_ = xt-(0.5 * cellsize)
+    yt_ = yt-(0.5 * cellsize)
+    distance = math.sqrt(xt_**2+yt_**2)
+    if distance <= radius:
+        argument = True
     else:
-        argument=False
+        argument = False
     #print 'radius= %s, dist= %s, %s' %(radius, distance, argument)
     
     return argument
 
 
 def plotBoreholeRadius(radius, cellsize):
-    x = math.ceil(radius/cellsize)*cellsize ; y=0
-    xpoints=[] ; ypoints = []
-    count=0
-    while x>=0:
+
+    x = math.ceil(radius / cellsize) * cellsize
+    y=0
+    xpoints=[]
+    ypoints = []
+    count = 0
+    while x >= 0:
         xpoints.append(x/cellsize) ; ypoints.append(y/cellsize)
         yt = y + cellsize 
-        if testpoint(radius, cellsize, x, yt) == True:
+        if testpoint(radius, cellsize, x, yt) is True:
             y = yt
         else:
             x = x - cellsize 
-    xpoints.append(x/cellsize) ; ypoints.append(y/cellsize)
+    xpoints.append(x / cellsize)
+    ypoints.append(y / cellsize)
     pl.plot(np.asarray(xpoints), np.asarray(ypoints), color='k', 
             linewidth=2)        
     
@@ -279,36 +297,33 @@ def plotBoreholeRadius(radius, cellsize):
 def residualFunc(parameters, nx, ny, cellsize, timestep,
     circtime, radius, KRock, KMud, cRock, cMud, rhoRock, rhoMud, stir,
     BHTs, recoveryTimes, mudTemp, minimumMudTemp, returnData):
-    
-    
+
     if len(parameters) == 2:
         print 'calibration params: T formation: %0.2f, T mud: %0.2f'\
-            %(parameters[0], parameters[1])
-        mudTemp=parameters[1]
+            % (parameters[0], parameters[1])
+        mudTemp = parameters[1]
     
         if mudTemp < minimumMudTemp:
             mudTemp = minimumMudTemp
             parameters[1] = mudTemp
             print '\twarning, increasing mud temp to %0.2f' %mudTemp
-    
-    
+
     elif len(parameters) == 1:
         print 'calibration params: T formation: %0.2f' %(parameters[0])
     
-    initialTemp=parameters[0]
+    initialTemp = parameters[0]
     
     BHTout, RMSE = BHTcalcFunc(parameters, mudTemp, nx, ny,
-                                cellsize, timestep, circtime, radius,
-                                KRock, KMud, cRock, cMud, rhoRock,
-                                rhoMud, stir, BHTs, recoveryTimes)
+                               cellsize, timestep, circtime, radius,
+                               KRock, KMud, cRock, cMud, rhoRock,
+                               rhoMud, stir, BHTs, recoveryTimes)
 
     #residuals=zeros(shape(BHTout), dtype=float)
     residuals = BHTout - BHTs
         
-    print 'RMSE of observed and simulated T: %0.2f \n ------' %RMSE
+    print 'RMSE of observed and simulated T: %0.2f \n ------' % RMSE
     
-    if returnData == True:
+    if returnData is True:
         return residuals
     else:
         return RMSE
-    
