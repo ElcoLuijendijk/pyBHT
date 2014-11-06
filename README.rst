@@ -8,7 +8,7 @@ PyBHT is a model code that calculates formation temperature from time
 series of three or more bottom hole temperatures recorded at the same
 depth. The model simulates cooling as a result of drilling and the
 subsequent thermal recovery using an explicit finite difference 
-solver of the radial heat flow equation.
+solution of the radial heat flow equation.
 Formation and borehole temperature are calibrated using the downhill 
 simplex algorithm provided by Scipy.
 
@@ -66,11 +66,9 @@ Contact me by email if you do not have access to this journal.
 License
 =======
 
-PyBHT is distributed under the European Union Public Licence V. 1.1.
-A copy of this license is distributed along with PyBHT, see
-license_EN.pdf and license_NL.pdf
-
-
+PyBHT is distributed under the GNU General Public License, version 3:
+http://www.gnu.org/copyleft/gpl.html
+A copy of this license is distributed along with PyBHT, see: gpl-3.0.txt
 
 Elco Luijendijk <elco.luijendijk at gmail.com>
 Nov 2014
