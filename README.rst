@@ -8,7 +8,7 @@ PyBHT is a model code that calculates formation temperature from time
 series of three or more bottom hole temperatures recorded at the same
 depth. The model simulates cooling as a result of drilling and the
 subsequent thermal recovery using an explicit finite difference 
-solver of the heat flow equation in a 2D model space.
+solver of the radial heat flow equation.
 Formation and borehole temperature are calibrated using the downhill 
 simplex algorithm provided by Scipy.
 
@@ -17,35 +17,25 @@ Usage
 =====
 - Use a text editor to adjust the location of the BHT input file and 
   the model parameters in the model parameter file "PyBHT_params.py"
-- Construct a file containing the BHT series input data.
+- Construct a .csv file containing bottom hole temperature input data.
   An example file is located in: /input/BHT.csv
-- If you are running the model code for the first time:
-
-    - Compile the fortran heat flow modules using f2py::
-        
-        cd lib
-        f2py -m -c heatflow heatflow.f
-        f2py -m -c heatflow_v2 heatflow_v2.f
-        
-    - Or instruct PyBHT to compile the fortran modules by passing a 'compile'
-      argument to the python script::
-        
-        python PyBHT.py compile
-
-- Run the model code:: 
+- The thermal parameters of the formation rocks surrounding the borehole,
+  pore water, and drilling mud are located in separate .csv files in the folder
+  /input.
+- Run the model code::
         
         python PyBHT.py
 
-- A .csv file that contains the model results, including the calibrated 
+- A .csv file that contains the model results, including the calibrated
   formation temperatures is stored in the folder /results/
 
-- A figure of the model results is created automatically and stored in the folder /fig/
+- A figure of the model results for each BHT series is created automatically
+  and stored in the folder /fig/
 
 
 Dependencies
 ============
-PyBHT requires the following packages to be installed on the system:
-
+PyBHT requires the following python packages:
 
 * Python 2.x: http://www.python.org/
 
@@ -83,6 +73,6 @@ license_EN.pdf and license_NL.pdf
 
 
 Elco Luijendijk <elco.luijendijk at gmail.com>
-April 2011 
+Nov 2014
 
 

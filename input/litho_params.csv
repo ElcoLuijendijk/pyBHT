@@ -1,0 +1,7 @@
+lithology,phi_0,compressibility,specific_heat_matrix,density_matrix,K_matrix
+sand,0.49,0.00027,900,2650,3.5
+mixed_siliciclastic,0.55,0.0005,900,2650,3
+clay,0.63,0.00051,900,2650,2.5
+carbonate,0.7,0.00071,900,2700,3.2
+organic,0.05,0,900,1500,1
+evaporite,0.01,0,900,2170,5.5

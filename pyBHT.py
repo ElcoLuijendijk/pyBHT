@@ -17,177 +17,183 @@ Elco Luijendijk <elco.luijendijk@gmail.com>
 
 import math
 import os
-import sys
 
-import pylab as pl
-
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as pl
 import scipy.optimize
 
-from pyBHT_params import *
+import pyBHT_params as params
+import lib.pyBHTlib as pyBHTlib
+
 
 print 'Calculation of formation temperatures from time series of ' \
       'bottom hole temperatures'
 print 'using a 2-media (borehole and formation) numerical ' \
-      'finite-difference model'
+      'finite-difference heat flow model'
 print '2011-2014'
 print 'Elco Luijendijk <elco.luijendijk@gmail.com>'
 
-# compile fortran heat flow modules:
-if len(sys.argv) > 1 and 'compile' in sys.argv:
-    print 'compiling fortran modules'
-    os.chdir('./lib')
-    os.system('f2py -m -c heatflow heatflow.f')
-    os.system('f2py -m -c heatflow_v2 heatflow_v2.f')
-    os.chdir('./..')
+# read input datafile
+df_raw = pd.read_csv(params.input_file)
+#df_raw.set_index('id')
+n_data = len(df_raw)
 
-import lib.pyBHTlib as pyBHTlib
+dfl = pd.read_csv(params.litho_file)
+dfm = pd.read_csv(params.mud_file)
+dfw = pd.read_csv(params.water_file)
 
-header, wellindex, inputArray = \
-    pyBHTlib.readCSVArray_id(fileName, delimiter=",")
-
-Nwells,  dataLength = np.shape(inputArray)
-
-if calibrateMudTemp is True:
-    Nparameters = 2
+if params.calibrate_mud_temp is True:
+    n_parameters = 2
 else:
-    Nparameters = 1
+    n_parameters = 1
 
-#create array to store simuation results
-Ninp = 8
-outputArray = np.zeros((Nwells, Ninp + 13), dtype=float)
-outputArray[:, :Ninp] = inputArray[:, :Ninp]
+# add  litho params to dataframe
+df = df_raw.merge(dfl)
 
-parameters = np.zeros(Nparameters, dtype=float)
+# add mud params to dataframe
+df = df.merge(dfm)
 
-for wellNo in xrange(Nwells):
+# add water params to dataframe
+df = df.merge(dfw)
 
-    print '\n--------- run %s /%s,  well %s ------\n' \
-          % (wellNo+1, Nwells, wellindex[wellNo])
-    
-    ###### set parameters
-    radius = inputArray[wellNo, 5]
-    Nbhts = int(inputArray[wellNo, 7])
-    # circulation time in hrs
-    circtimeHr = float(inputArray[wellNo, 6]) 
-    # use the estimate entered by the user if no data available
-    if circtimeHr >= 99999 or circtimeHr == 0:  
-        circtimeHr = circtime_est
-    # circulation time in seconds
-    circtime = int(circtimeHr * 60.0 * 60.0)
-    
-    ### set thermal parameters
-    # calculate rock thermal properties using porosity-depth equation
-    lithology = inputArray[wellNo, 1]
-    # lithology from 4th column in input file 
-    # 0=clay, 1=sand, 2=carbonate, 3=salt, 4=coal
-    # depth below surface in m
-    depth = inputArray[wellNo, 0]
+# calculate porosity
+df['porosity_final'] = df['porosity']
+ind = df['porosity'].isnull()
+df['porosity_final'][ind] = (df['phi_0'][ind]
+                             * np.exp(-df['compressibility'][ind]
+                                      * df['depth'][ind]))
 
-    # porosity
-    phi = inputArray[wellNo, 2]    
-    if phi == 0 or phi >= 99999:
-        Phi0_bht = Phi0[lithology]
-        Phic_bht = Phic[lithology]
-        phi = Phi0_bht * np.exp(-Phic_bht*depth)
-    
-    diffusivity_rock = inputArray[wellNo, 3]
-    
-    if diffusivity_rock == 0 or diffusivity_rock >= 99999:
-        # thermal conductivity W m-1 K-1 or J m-1 K-1 s-1
-        Kmatrix = conductivity[lithology] 
-        KRock = (Kwater**phi) * (Kmatrix**(1 - phi))
-        rhoRock_bulk = rhoRock*phi+rhoWater*(1 - phi)
-        cRock_bulk = cRock * phi + cWater*(1 - phi)
+# calculate matrix and formation thermal conductivity
+df['K_formation'] = ((df['K_water']**df['porosity_final'])
+                     * (df['K_matrix']**(1.0 - df['porosity_final'])))
+df['density_formation'] = \
+    (df['porosity_final'] * df['density_water']
+     + ((1.0 - df['porosity_final']) * df['density_matrix']))
+df['spec_heat_formation'] = \
+    (df['porosity_final'] * df['specific_heat_water']
+     + ((1.0 - df['porosity_final']) * df['specific_heat_matrix']))
 
-    else:
-        # if diffusivity is specified:
-        # calculate thermal conductivity from diffusivity
-        # TODO: change input params of FD solver so that only
-        # diffusivity param is required as input
-        rhoRock_bulk = rhoRock * phi + rhoWater * (1 - phi)
-        cRock_bulk = cRock * phi + cWater * (1 - phi)
-        KRock = diffusivity_rock / (cRock_bulk * rhoRock_bulk)
-    
-    diffusivity_mud = inputArray[wellNo, 4] 
-    if diffusivity_mud != 0 and diffusivity_mud < 99999:
-        print '\tusing specified diffusivity of drilling mud'
-        # thermal conductivity of drilling mud from diffusivity
-        KMud2 = diffusivity_mud / (cMud * rhoMud)
-    else:
-        # use standard thermal conductivity defined in parameter file
-        KMud2 = KMud
-    
-    # set initial temperature estimates   
-    initialTemp = float(inputArray[wellNo,  8]) 
-    mudTemp = float(inputArray[wellNo,  9])
+# use estimated circulation time from parameter file
+# if not specified in BHT input file
+df['circ_time'][df['circ_time'].isnull()] = params.circtime_est
 
-    # set BHT array
-    BHTs = np.zeros(Nbhts, dtype=float)
-    recoveryTimes = np.zeros(Nbhts, dtype=float)
-    for bhtNo in range(Nbhts):
-        BHTs[bhtNo] = inputArray[wellNo,  17+bhtNo]
-        recoveryTimes[bhtNo] = inputArray[wellNo,  10+bhtNo]
-    
-    parameters = np.zeros(Nparameters, dtype=float)
-    formationTemp = initialTemp
-    parameters[0] = initialTemp
-    if calibrateMudTemp is True:
-        parameters[1] = mudTemp
+df = df.set_index(['id'])
 
-    if calibrate is True:
-        if optMethod == 'leastsq':
-                
-                ## perform least squares optimization,  test: 8 runs,  min=1.66
-                returnData = True
-                results = scipy.optimize.leastsq(
-                    pyBHTlib.residualFunc, parameters,
-                    args=(nx, ny, cellsize, timestep,
-                          circtime, radius, KRock, KMud2,
-                          cRock_bulk, cMud, rhoRock_bulk,
-                          rhoMud, stir, BHTs,
-                          recoveryTimes,
-                          mudTemp, minimumMudTemp,
-                          returnData), ftol=0.01)
-                parameters = results[0]
+# save input data + porosity and thermal parameters
+print 'saving input data, calculated porosity and thermal parameters to %s' \
+    % params.outputfilename
+df.to_csv(params.outputfilename)
 
-                if calibrateMudTemp is True:
-                    formationTemp = parameters[0]
-                    mudTemp = parameters[1]    
-                else:
-                    formationTemp = parameters
-                
-        elif optMethod == 'simplex':
+for well_no, bht_id in enumerate(df.index):
+
+    print '\n--------- run %s / %s,  well %s ------\n' \
+          % (well_no + 1,
+             n_data,
+             df.ix[bht_id, 'well'])
+
+    # create arrays of BHT and recovery times
+    BHTs = np.zeros(df.ix[bht_id, 'N_BHTs'])
+    recovery_times = np.zeros(BHTs.shape)
+    for bht_number in xrange(1, df.ix[bht_id, 'N_BHTs'] + 1):
+        BHTs[bht_number-1] = df.ix[bht_id, 'T_%i' % bht_number]
+        recovery_times[bht_number-1] = df.ix[bht_id,
+                                             'rec_time_%i' % bht_number]
+
+    # construct calibration parameters:
+    parameters = np.zeros(n_parameters, dtype=float)
+    parameters[0] = df.ix[bht_id, 'T_formation_init']
+    if params.calibrate_mud_temp is True:
+        parameters[1] = df.ix[bht_id, 'T_mud_init']
+
+    if params.calibrate is True:
+
+        if params.calibration_method == 'leastsq':
+            return_data = True
+        else:
+            return_data = False
+
+        args = (params.nr,
+                params.dr,
+                params.dt,
+                df.ix[bht_id, 'circ_time'] * 60.0 * 60.0,
+                df.ix[bht_id, 'diameter'] / 2.0,
+                df.ix[bht_id, 'K_formation'],
+                df.ix[bht_id, 'K_mud'],
+                df.ix[bht_id, 'spec_heat_formation'],
+                df.ix[bht_id, 'specific_heat_mud'],
+                df.ix[bht_id, 'density_formation'],
+                df.ix[bht_id, 'density_mud'],
+                BHTs,
+                recovery_times * 60.0 * 60.0,
+                df.ix[bht_id, 'T_formation_init'],
+                df.ix[bht_id, 'T_mud_init'],
+                return_data,
+                params.minimum_mud_temp,
+                params.p,
+                params.borehole_mixing)
+
+        if params.calibration_method == 'leastsq':
+
+            ## perform least squares optimization,  test: 8 runs,  min=1.66
+            results = scipy.optimize.leastsq(pyBHTlib.objective_function,
+                                             parameters,
+                                             args=args,
+                                             ftol=0.01)
+            parameters = results[0]
+
+            if params.calibrate_mud_temp is True:
+                df.ix[bht_id, 'calibrated_formation_temp'] = parameters[0]
+                df.ix[bht_id, 'calibrated_mud_temp'] = parameters[1]
+            else:
+                df.ix[bht_id, 'calibrated_formation_temp'] = parameters
+
+            print 'calibrated parameters: ', parameters
+
+        elif params.calibration_method == 'simplex':
             # optimize using simplex algorithm,  test: 1.66,  33 runs
-            returnData = False
-            results = scipy.optimize.fmin(pyBHTlib.residualFunc, parameters,
-                                          args=(nx, ny, cellsize, timestep,
-                                          circtime, radius, KRock, KMud2,
-                                          cRock_bulk, cMud, rhoRock_bulk,
-                                          rhoMud, stir, BHTs, recoveryTimes,
-                                          mudTemp, minimumMudTemp,
-                                          returnData),
+            results = scipy.optimize.fmin(pyBHTlib.objective_function,
+                                          parameters,
+                                          args=args,
                                           xtol=0.1, ftol=0.1)
             #parameters = results
-            formationTemp = results[0]
-            if calibrateMudTemp is True:
-                mudTemp = results[1]    
+            df.ix[bht_id, 'calibrated_formation_temp'] = results[0]
+            if params.calibrate_mud_temp is True:
+                df.ix[bht_id, 'calibrated_mud_temp'] = results[1]
+
+            print 'calibrated parameters: ', results
 
     # set final parameters:
-    parameters = np.zeros(Nparameters, dtype=float)
-    parameters[0] = formationTemp
-    if calibrateMudTemp is True:
-        parameters[1] = mudTemp
-    
+    parameters = np.zeros(n_parameters, dtype=float)
+    parameters[0] = df.ix[bht_id, 'calibrated_formation_temp']
+    if params.calibrate_mud_temp is True:
+        parameters[1] = df.ix[bht_id, 'calibrated_mud_temp']
+
+    print '-' * 7
+    print 'starting final model run with parameters: ', parameters
+
     # run simulation with final optimized parameters:
-    results = pyBHTlib.BHTcalcFunc(parameters, mudTemp, nx, ny,
-                                   cellsize, timestep, circtime,
-                                   radius,
-                                   KRock, KMud2, cRock, cMud,
-                                   rhoRock, rhoMud,
-                                   stir, BHTs, recoveryTimes,
-                                   makeFigure=makeFigure)
-    if makeFigure is True:
-        BHTout, RMSE,  BHTtimes,  BHTcurve,  Tplot = results  
+    results = pyBHTlib.simulate_BHTs(parameters,
+                                     df.ix[bht_id, 'T_mud_init'],
+                                     params.nr,
+                                     params.dr,
+                                     params.dt,
+                                     df.ix[bht_id, 'circ_time'] * 60.0 * 60.0,
+                                     df.ix[bht_id, 'diameter'] / 2.0,
+                                     df.ix[bht_id, 'K_formation'],
+                                     df.ix[bht_id, 'K_mud'],
+                                     df.ix[bht_id, 'spec_heat_formation'],
+                                     df.ix[bht_id, 'specific_heat_mud'],
+                                     df.ix[bht_id, 'density_formation'],
+                                     df.ix[bht_id, 'density_mud'],
+                                     BHTs,
+                                     recovery_times * 60.0 * 60.0,
+                                     params.p,
+                                     params.borehole_mixing,
+                                     make_figure=params.make_figure)
+
+    if params.make_figure is True:
+        BHTout, RMSE,  BHT_times,  BHT_curve,  r, Tplot = results
     else:
         BHTout, RMSE = results
     
@@ -196,96 +202,103 @@ for wellNo in xrange(Nwells):
     ssxx = np.sum((BHTs - BHTs.mean())**2)
     ssyy = np.sum((BHTout - BHTout.mean())**2)
     
-    R2 = ssxy**2 /(ssxx * ssyy)
+    df.ix[bht_id, 'R2'] = ssxy**2 / (ssxx * ssyy)
+    df.ix[bht_id, 'RMSE'] = RMSE
+
+    for i, BHT in enumerate(BHTout):
+        df.ix[bht_id, 'T_calibrated_%i' % (i+1)] = BHT
 
     print '--\nOptimized formation and mud temperatures of well %s:'\
-          % wellindex[wellNo]
-    print ' %0.1f,  %0.1f\n--' %(formationTemp, mudTemp)
-
-    # store results in an array:
-    outputArray[wellNo,  (Ninp+6):(Ninp+6+Nbhts)] = BHTout[:]
-    outputArray[wellNo,  Ninp] = KRock / (cRock_bulk*rhoRock_bulk)
-    outputArray[wellNo,  Ninp+1] = KMud2 / (cMud*rhoMud)
-    outputArray[wellNo,  Ninp+2] = formationTemp
-    outputArray[wellNo,  Ninp+3] = mudTemp
-    outputArray[wellNo,  Ninp+4] = RMSE
-    outputArray[wellNo,  Ninp+5] = R2
+          % df.ix[bht_id, 'well']
+    print df.ix[bht_id, ['calibrated_formation_temp',
+                         'calibrated_formation_temp']]
 
     # create figure:
-    if makeFigure == True:
-        
-        Nrows = int(math.ceil((Nbhts + 1) / 2.0))
-        
-        pyBHTlib.initFigure(vert_size=Nrows*60.0)
-        pl.subplots_adjust(wspace=0.25,  hspace=0.4)
-    
-        minval = int(math.floor(Tplot[:, :, 1:].min() / 2.) * 2)
-        maxval = int(math.ceil(Tplot[:, :, 1:].max() / 2.) * 2)
+    if params.make_figure is True:
+
+        width = 110.0 / 25.4
+        height = width
+
+        fig = pl.figure(figsize=(width, height))
+
+        fig_params = {'axes.labelsize': 'x-small',
+                      'legend.fontsize': 'xx-small',
+                      'xtick.labelsize': 'x-small',
+                      'ytick.labelsize': 'x-small'}
+
+        pl.rcParams.update(fig_params)
+
+        axs = [fig.add_subplot(2, 1, 1),
+               fig.add_subplot(2, 1, 2)]
+
+        minval = int(math.floor(Tplot.min() / 2.) * 2)
+        maxval = int(math.ceil(Tplot.max() / 2.) * 2)
         contourInt = np.arange(minval, maxval, 2)
         
         degree_symbol = unichr(176)
-        axistext='Temperature (%sC)' % degree_symbol
-        
+        axistext = 'Temperature (%sC)' % degree_symbol
+
         # temperature fields:
-        for bhtNo in xrange(Nbhts):
-            pl.subplot(Nrows, 2, bhtNo+1)
-            
-            im = pl.imshow(Tplot[:, :, bhtNo+1], vmin=minval,
-                           vmax=maxval, cmap=pl.get_cmap('hot'))
-            cn = pl.contour(Tplot[:, :, bhtNo+1], 
-                            colors='gray')
-            pyBHTlib.plotBoreholeRadius(radius, cellsize)
-            pl.xlim(0, nx)
-            pl.ylim(0, ny)
-            
-            titletxt = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)',
-                        '(G)'][bhtNo]
-            titletxt += ' %0.1f hrs recovery time'\
-                %(recoveryTimes[bhtNo])
-            pl.title(titletxt)
-            pl.xlabel('Distance (m)')
-            pl.ylabel('Distance (m)')
+        for bhtNo in xrange(df.ix[bht_id, 'N_BHTs']):
+
+            label = 'T, %0.1f hrs' % recovery_times[bhtNo]
+            axs[0].plot(r, Tplot[bhtNo], lw=1.0, label=label)
 
         # temperature curve
-        axc = pl.subplot(Nrows, 2, bhtNo+2)
-        pl.plot(BHTtimes / (60.0*60.0), BHTcurve, color='black', lw=1.0)
-        pl.scatter(recoveryTimes, BHTs, facecolor='gray',
-                   edgecolor='black')
-        pl.ylim(BHTcurve.min(), BHTcurve.max() * 1.2)
-        axc.yaxis.grid(True)
-        axc.xaxis.grid(True)
-        pl.xlabel('Time (hr)')
-        pl.ylabel(axistext)
-    
-        titletxt = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)',
-                    '(G)', '(H)'][bhtNo+1]
-        titletxt += ' Borehole temperature'
-        pl.title(titletxt)
-        
-        pl.subplots_adjust(hspace=0.5, wspace=0.3, bottom=0.17)
-        
-        axcb = pl.axes((0.1, 0.07, 0.4, 0.02), frameon=False)
-        pl.xticks([])
-        pl.yticks([])
-        cb = pl.colorbar(im, cax=axcb,
-                         orientation='horizontal')
-        cb.add_lines(cn)
-        cb.set_label(axistext, fontsize='xx-small')
+        axs[1].plot(BHT_times / (60.0*60.0), BHT_curve, color='black', lw=1.0)
+        axs[1].scatter(recovery_times, BHTs, facecolor='gray',
+                       edgecolor='black')
+        axs[1].set_ylim(BHT_curve.min(), BHT_curve.max() * 1.2)
 
-        figfile = os.path.join('fig', wellindex[wellNo] + '_BHTmodel.png')
+        # make fill area for borehole
+        radius = df.ix[bht_id, 'diameter'] / 2.0
+        ylim = axs[0].get_ylim()
+        axs[0].fill((0, radius, radius, 0),
+                    (ylim[0], ylim[0], ylim[1], ylim[1]),
+                    color='grey',
+                    zorder=0,
+                    label='borehole')
+
+        tekst = 'R2 = %0.2f\nRMSE = %0.1f %sC' \
+                % (df.ix[bht_id, 'R2'],
+                   df.ix[bht_id, 'RMSE'],
+                   degree_symbol)
+        axs[1].text(0.9, 0.1, tekst,
+                    ha='right', va='bottom',
+                    fontsize='xx-small',
+                    transform=axs[1].transAxes)
+
+        axs[0].set_xlabel('Distance (m)')
+        axs[1].set_xlabel('Recovery time (hr)')
+        axs[0].set_ylabel(axistext)
+        axs[1].set_ylabel(axistext)
+
+        axs[0].legend(loc='lower right', fontsize='xx-small')
+
+        for ax in axs:
+            ax.set_xlim(0, ax.get_xlim()[-1])
+            ax.grid()
+
+        title = 'Temperature during recovery\n%s, well %s, depth=%0.0f m' \
+                % (bht_id, df.ix[bht_id, 'well'], df.ix[bht_id, 'depth'])
+
+        axs[0].set_title(title, fontsize='x-small')
+
+        fig.tight_layout()
+
+        fn = '%s_%s_%0.0fm_BHT_model.png' % (bht_id,
+                                             df.ix[bht_id, 'well'],
+                                             df.ix[bht_id, 'depth'])
+        figfile = os.path.join('fig', fn)
         pl.savefig(figfile, dpi=300)
+
         print '-'*10
         print 'Figure saved as %s' % figfile
         print '-'*10
-        
-# save results:
-header_output = header[:Ninp+1] + ['diffusivity_rock', 'diffusivity_mud',
-                                   'T_calibrated', 'Tmud_calibrated',
-                                   'RMSE', 'R2', 'BHTsim_1', 'BHTsim_2',
-                                   'BHTsim_3', 'BHTsim_4', 'BHTsim_5',
-                                   'BHTsim_6', 'BHTsim_7']
-pyBHTlib.saveCSVArray_id(outputfilename, header_output,
-                         wellindex, outputArray)
 
-print '%i BHT recovery calculations done' % (wellNo + 1)
-print 'results saved as csv file:\n%s' % outputfilename
+    # save input data + porosity and thermal parameters
+    print 'saving input data and model results to %s' \
+        % params.outputfilename
+    df.to_csv(params.outputfilename)
+
+print 'done'

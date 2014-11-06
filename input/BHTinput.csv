@@ -1,3 +1,3 @@
-well,depth,lithology,porosity,diffusivity_rock,diffusivity_mud,diameter,circ_time,N_BHTs,T_init,Tmud_init,rec_time,rec_time,rec_time,rec_time,rec_time,rec_time,rec_time,T,T,T,T,T,T,T
-KWK-01,2683.44,3,99999,99999,99999,0.106426,99999,4,103.92,72.74,7.3,12.1,14.25,19.3666666667,0,0,0,98,105,108,108,0,0,0
-WWS-01,3054.02,3,99999,99999,99999,0.10795,99999,4,116.89,81.82,7.5,17,21.25,25.75,0,0,0,97,105,108,109,0,0,0
+id,well,depth,lithology,mud_type,water_type,porosity,diameter,circ_time,N_BHTs,T_formation_init,T_mud_init,rec_time_1,rec_time_2,rec_time_3,rec_time_4,rec_time_5,rec_time_6,rec_time_7,T_1,T_2,T_3,T_4,T_5,T_6,T_7
+BHT1,KWK-01,2683.44,clay,mud1,water1,,0.106426,,4,103.92,72.74,7.3,12.1,14.25,19.3666666667,,,,98,105,108,108,,,
+BHT2,WWS-01,3054.02,sand,mud1,water1,,0.10795,,4,116.89,81.82,7.5,17,21.25,25.75,,,,97,105,108,109,,,
