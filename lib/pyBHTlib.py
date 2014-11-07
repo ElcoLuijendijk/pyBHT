@@ -4,9 +4,7 @@
 
 import math
 import pdb
-
 import numpy as np
-import pylab as pl
 
 
 def simulate_BHTs(parameters, mud_temp, nr, dr, dt,
